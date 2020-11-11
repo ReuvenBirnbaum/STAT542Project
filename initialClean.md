@@ -20,7 +20,7 @@ The relationship between the above cols to be discussed. (to determine whether o
 
 
 Click here to download [clean data](https://drive.google.com/file/d/1IAd1WUgJvsPLNOfyp78PLqVHv8JqeTmp/view?usp=sharing), 
-with all missing values dropped. Noted that this csv file is tab delimited other than comma.
+with all missing values dropped. Noted that this csv file is tab delimited rather than comma.
 
 -- *Ashley*
 
