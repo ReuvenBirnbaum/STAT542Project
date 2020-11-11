@@ -1,17 +1,17 @@
 #This file will be used to clean our data 
 
 
-age_cat has 547 missing values, it is 5.75% of the data
-bmi has 308 missing values, it is 3.24% of the data
-bmi_cat has 578 missing values, it is 6.08% of the data
-weight_kg has 252 missing values, it is 2.65% of the data
-race has 189 missing values, it is 1.99% of the data
-sex has 368 missing values, it is 3.87% of the data
-alcohol_frequency has 215 missing values, it is 2.26% of the data
+* age_cat has 547 missing values, it is 5.75% of the data
+* bmi has 308 missing values, it is 3.24% of the data
+* bmi_cat has 578 missing values, it is 6.08% of the data
+* weight_kg has 252 missing values, it is 2.65% of the data
+* race has 189 missing values, it is 1.99% of the data
+* sex has 368 missing values, it is 3.87% of the data
+* alcohol_frequency has 215 missing values, it is 2.26% of the data
 
-Rows containing missing value(s) are about 12% of the total data.
+Rows containing missing value(s) are about **12%** of the total data.
 
-One of the ideal method is to drop any row who has one or more missing values.
+One of the ideal method is to **drop** any row who has one or more missing values.
 
 The relationship between the above cols to be discussed.
 
