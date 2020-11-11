@@ -1,4 +1,4 @@
-#This file will be used to clean our data 
+# This file will be used to clean our data 
 
 
 - age_cat has 547 missing values, it is 5.75% of the data
