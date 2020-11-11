@@ -11,7 +11,7 @@
 
 Rows containing missing value(s) are about **12%** of the total data.
 
-One of the ideal method is to **drop** any row who has one or more missing values.
+One of the ideal methods is to **drop** any row who has one or more missing values.
 
 The relationship between the above cols to be discussed.
 
