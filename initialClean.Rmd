@@ -13,7 +13,8 @@ Rows containing missing value(s) are about **12%** of the total data.
 
 On the other hand, rows only have invalid BMI/BMI_cat are **6%** of the total data. -- must drop as the tasks are to predict those values
 
-One of the ideal methods is to **drop** any row who has one or more missing values. Also because records which have at least one missing value, have other columns with weird values that cannot be employed.
+One of the ideal methods is to **drop** any row who has one or more missing values. 
+Also because records which have at least one missing value, have other columns with weird values that cannot be employed.
 
 The relationship between the above cols to be discussed. (to determine whether or not the age/race/sex has significant impact on BMI)
 
