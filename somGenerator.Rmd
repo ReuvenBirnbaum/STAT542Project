@@ -1,0 +1,89 @@
+---
+title: "somGenerator"
+author: "reuven"
+date: "11/17/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, eval=FALSE}
+# Only Run this to reload cleaneddata and save it to rds file
+#
+#cleanData = read.table(file = 'C:/Users/reuven/Documents/Classes/STAT542Project/data/clean.csv', sep = "\t")
+#saveRDS(cleanData,file = "C:/Users/reuven/Documents/Classes/STAT542Project/data/cleanedData.rds")s
+```
+
+Run to load entire dataset
+```{r, eval=FALSE}
+setwd("C:/Users/reuven/Documents/Classes/STAT542Project")
+cleanData = readRDS("C:/Users/reuven/Documents/Classes/STAT542Project/data/cleanedData.rds")
+
+```
+
+
+Create and save numeric OTU Info of cleanedData 
+```{r}
+otuInfo = cleanData[2:nrow(cleanData),c(10:ncol(cleanData))]
+otuInfo[] = lapply(otuInfo,as.numeric)
+saveRDS(otuInfo,"data/otuInfo.rds")
+```
+
+
+```{r}
+#library(princomp)
+if (!exists("otuInfo")){
+  otuInfo = readRDS('data/otuInfo.rds')
+}
+n = nrow(otuInfo)
+m= ncol(otuInfo)
+
+nonZero=colSums(otuInfo!=0)
+nonZeroSorted = sort(nonZero,decreasing = TRUE)
+
+nonZeroLimit = nonZeroSorted[8359]
+print(nonZeroLimit) # Only 8 of them are nonzero
+nonZeroSorted[8355:8365] #if we use above cutoff, we favor certain attributes with 8 nonzero but not others: Use 9 as cutoff
+
+plot(nonZeroSorted[1:n]/n,lty=1,type="l",xlab="Sorted Attributes",ylab="Non-Zero element ratio")
+
+
+#selectAttr= nonZero>8 #cutoff
+selectAttr= nonZero>.01*n #Accepting the 1876 most populated attributes
+selectOTUInfo = otuInfo[,selectAttr]
+if (!exists("otu.pca")){otu.pca = princomp(selectOTUInfo)}
+saveRDS(otu.pca,"data/otu_pca.rds")
+
+```
+
+```{r}
+library(kohonen)
+library(ggplot2)
+if (!exists("otu.pca")){otu.pca = readRDS('data/otu_pca.rds')}
+pcaLimit =100 #use only the first prin comp
+otu.som =som(otu.pca$scores[,1:pcaLimit],grid = somgrid(3,1,"rectangular"))
+labels = otu.som$unit.classif
+results.som = list(X = otu.pca$scores[,1:pcaLimit],y = labels, mu = otu.som$codes)
+saveRDS(results.som,"data/results_som.rda")
+
+pairs(results.som$X[,1:6])
+      
+otu.somLarge =som(otu.pca$scores[,1:100],grid = somgrid(20,20,"rectangular"))
+
+
+```
+
+
+```{r}
+if (!exists("results.som")){results.som = readRDS('data/results_som.rda')}
+pairs(results.som$X[,1:4],col=c("red","blue","green")[results.som$y])
+
+
+plot(otu.somLarge,type="dist.neighbours")
+plot(otu.somLarge,type="counts")
+
+```
