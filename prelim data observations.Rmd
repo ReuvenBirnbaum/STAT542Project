@@ -1,0 +1,45 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+#cleanedData = readRDS('data/cleanedData.rds')
+
+wKg = as.numeric(cleanedData$weight_kg)
+age = cleanedData$age_cat
+bmi = as.numeric(cleanedData$bmi)
+
+boxplot(wKg~age)
+boxplot(wKg~age,ylim=c(0,50))
+plot(sort(bmi))
+plot(wKg,bmi,xlab = "weight (kg)", ylab = "bmi")
+points(wKg[which(bmi<12)],bmi[which(bmi<12)],col="green")
+
+
+largeWKGSamllBMI = which(wKg>600)
+sqrt(wKg[largeWKGSamllBMI]/bmi[largeWKGSamllBMI]) # 4 meters tall!!
+
+smallWKGlargeBMI = which(bmi>100 & wKg <200)
+sqrt(mean(wKg[smallWKGlargeBMI])/mean(bmi[smallWKGlargeBMI])) #2 feet tall
+
+boxplot(bmi ~ cleanedData$bmi_cat)
+boxplot(bmi ~ cleanedData$bmi_cat,ylim = c(0,12), ylab = "bmi (life threatening range)")
+
+```
+
+
+```{r}
+#otuInfo = readRDS('data/otuInfo.rds')
+uniqueNonZeroRatio = c()
+for (ind in 1:ncol(otuInfo)){
+  currNonZeroObs = otuInfo[,ind]!=0
+  uniqueNonZeroRatio[ind] = length(unique(otuInfo[currNonZeroObs,ind]))/sum(currNonZeroObs)
+}
+plot(sort(uniqueNonZeroRatio),type="l",xlab = "Sorted OTU Attributes", ylab = "Ratio of unique non zero values")
+
+```
+
+

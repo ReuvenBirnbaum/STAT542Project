@@ -52,38 +52,61 @@ nonZeroSorted[8355:8365] #if we use above cutoff, we favor certain attributes wi
 plot(nonZeroSorted[1:n]/n,lty=1,type="l",xlab="Sorted Attributes",ylab="Non-Zero element ratio")
 
 
-#selectAttr= nonZero>8 #cutoff
-selectAttr= nonZero>.01*n #Accepting the 1876 most populated attributes
+selectAttr= nonZero>8 #cutoff
+#selectAttr= nonZero>.01*n #Accepting the 1876 most populated attributes
 selectOTUInfo = otuInfo[,selectAttr]
 if (!exists("otu.pca")){otu.pca = princomp(selectOTUInfo)}
-saveRDS(otu.pca,"data/otu_pca.rds")
+pcaLimit =sum((cumsum(otu.pca$sdev^2)/sum(otu.pca$sdev^2))<=.85)
+
+otu.sigPCAScores = otu.pca$scores[,1:pcaLimit]
+
+pairs(otu.sigPCAScores[,1:6])
+saveRDS(otu.sigPCAScores,"data/otu_sigPCAScores.rds")
+
 
 ```
 
 ```{r}
 library(kohonen)
 library(ggplot2)
-if (!exists("otu.pca")){otu.pca = readRDS('data/otu_pca.rds')}
-pcaLimit =100 #use only the first prin comp
-otu.som =som(otu.pca$scores[,1:pcaLimit],grid = somgrid(3,1,"rectangular"))
-labels = otu.som$unit.classif
-results.som = list(X = otu.pca$scores[,1:pcaLimit],y = labels, mu = otu.som$codes)
-saveRDS(results.som,"data/results_som.rda")
+if (!exists("otu.sigPCAScores")){otu.pca = readRDS('data/otu_sigPCAScores.rds')}
 
-pairs(results.som$X[,1:6])
-      
-otu.somLarge =som(otu.pca$scores[,1:100],grid = somgrid(20,20,"rectangular"))
+otu.somLarge =som(otu.sigPCAScores,grid = somgrid(21,21,"hexagonal"))
+plot(otu.somLarge,type="dist.neighbours")
+plot(otu.somLarge,type="counts")
+```
+
+```{r}
+K = 3:7
+labels = data.frame(matrix(,nrow=8359,ncol=5))
+names(labels) = apply(as.matrix(K),1,toString)
 
 
+for (k in K){
+  currOTU.som = som(otu.sigPCAScores,grid = somgrid(k,1,"rectangular"))
+  labels[toString(k)] <- currOTU.som$unit.classif
+}
+#saveRDS(labels,"data/som_lables.rds")
+
+
+occurMatrix = matrix(,nrow=7,ncol=5)
+for (kInd in 1:5){
+  for (l in 1:7){
+    occurMatrix[l,kInd] = (sum(labels[toString(K[kInd])]==l))
+  }
+}
+occurancesK = data.frame(occurMatrix)
+names(occurancesK) = names(labels)
+rownames(occurancesK) = apply(as.matrix(1:7),1,toString)
+occurancesK
 ```
 
 
 ```{r}
-if (!exists("results.som")){results.som = readRDS('data/results_som.rda')}
-pairs(results.som$X[,1:4],col=c("red","blue","green")[results.som$y])
 
-
-plot(otu.somLarge,type="dist.neighbours")
-plot(otu.somLarge,type="counts")
+pairs(otu.sigPCAScores[,1:6],col=c("red","blue","green")[as.matrix(labels["3"])])
+pairs(otu.sigPCAScores[,1:6],col=c("red","blue","green","yellow","black")[as.matrix(labels["5"])])
+pairs(otu.sigPCAScores[,1:6],col=c("red","blue","green","yellow","black","purple","cyan")[as.matrix(labels["7"])])
 
 ```
+
