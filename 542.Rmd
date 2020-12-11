@@ -1,0 +1,279 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = Fasle, warnings = False}
+#devtools::install_github("XanderHorn/autoEDA")
+library(factoextra, quietly = T)
+library(FactoMineR, quietly = T)
+library(dplyr, quietly = T)
+library(autoEDA, quietly = T)
+library(cowplot, quietly = T) 
+library(rsample)
+library(caret)
+library(gbm)
+library(ranger)
+library(tibble)
+library(randomForest)
+```
+```{r}
+microbiome = read.csv('clean.csv',header = TRUE, sep = '\t')
+microbiome = microbiome[,-2]
+comp = microbiome[,9:ncol(microbiome)]
+```
+```{r}
+filt = apply(comp,2,function(x) mean(x>0))
+fc = comp[,filt>0.01]
+```
+
+
+
+
+```{r}
+res.pca = prcomp(fc)
+```
+```{r}
+dim(res.pca$x)
+```
+
+```{r}
+s = t(summary(res.pca)$importance)
+#cumvar = cumsum(res.pca$sdev^2)/sum(res.pca$sdev^2)
+```
+```{r}
+cumpro <- s[,3]
+plot(cumpro[0:100], pch = 16, xlab = "PC #", 
+     ylab = "Amount of explained variance", 
+     main = "Cumulative variance plot")
+abline(v = 69, col="blue", lty=5)
+abline(h = 0.85092, col="blue", lty=5)
+legend("topleft", legend=c("Cut-off @ PC69"),
+       col=c("blue"), lty=5, cex=0.6)
+# pc = 69
+#plot(s[1:150,3], pch = 16)
+#abline(h=0.85, col = 'red')
+```
+
+
+```{r}
+another.pca = PCA(fc, ncp = 70, scale.unit = F, graph = FALSE)
+```
+
+
+
+```{r}
+res.hcpc = HCPC(another.pca, nb.clust = -1, graph = FALSE)
+```
+
+```{r}
+fviz_dend(res.hcpc, show_labels = T)
+```
+
+
+```{r}
+# visualize individuals on the principal component map and 
+# to color individuals according to the cluster they belong to
+fviz_cluster(res.hcpc, geom = "point", main = "Factor map")
+```
+
+```{r}
+# hclust plot
+```
+
+
+
+```{r}
+res = res.hcpc$data.clust[,1877]
+```
+
+```{r}
+microbiome$bmi_cat = factor(microbiome$bmi_cat)
+microbiome$age_cat = factor(microbiome$age_cat)
+microbiome$sex = factor(microbiome$sex)
+microbiome$alcohol_frequency= factor(microbiome$alcohol_frequency)
+microbiome$race = factor(microbiome$race)
+microbiome$hc = factor(res)
+```
+
+```{r}
+df = microbiome[, c(2:8,32963)]
+```
+
+```{r}
+## autoEDA 
+autoEDA_results <- autoEDA(df, 
+                           y = "hc", returnPlotList = TRUE,
+                           outcomeType = "automatic", 
+                          plotCategorical = "groupedBar", 
+                           plotContinuous = "histogram", bins = 30, 
+                           rotateLabels = TRUE, color = "#26A69A", 
+                           verbose = FALSE) 
+
+## Plot figures in a grid
+plot_grid(plotlist = autoEDA_results$plots, ncol = 3)
+```
+
+
+```{r}
+s1 = autoEDA_results$plots[[1]]
+s2 = autoEDA_results$plots[[2]]
+s3=autoEDA_results$plots[[3]]
+s4=autoEDA_results$plots[[4]]
+s5=autoEDA_results$plots[[5]]
+s6=autoEDA_results$plots[[7]]
+#png(file="hc-1.png")
+gridExtra::grid.arrange(s1, s2, s3,s4,s5,s6,ncol = 3)
+#dev.off()
+```
+
+```{r}
+s7 = autoEDA_results$plots[[6]]
+s8 = autoEDA_results$plots[[8]]
+s9 = autoEDA_results$plots[[9]]
+gridExtra::grid.arrange(s7,s8,s9,ncol = 3)
+```
+```{r}
+autoEDA_results$plots[[8]]
+```
+
+
+
+```{r}
+microbiome %>% group_by(hc) %>% count(bmi_cat)
+```
+```{r}
+microbiome %>% group_by(hc) %>% count(race)
+```
+```{r}
+microbiome %>% group_by(hc) %>% count(sex)
+```
+```{r}
+microbiome %>% group_by(hc) %>% count(alcohol_frequency)
+```
+
+
+```{r}
+microbiome %>% group_by(hc) %>% count(age_cat)
+```
+
+
+
+
+
+```{r}
+set.seed(1)
+# k-means
+
+# k=3
+result_3 = kmeans(fc, centers=3)
+# k=4
+result_4 = kmeans(fc, centers=4)
+# k=5
+result_5 = kmeans(fc, centers=5)
+# k=6
+result_6 = kmeans(fc, centers=6)
+# k=7
+result_7 = kmeans(fc, centers=7)
+
+# Total
+result_kmeans = data.frame(result_3$cluster, result_4$cluster, result_5$cluster, result_6$cluster, result_7$cluster)
+colnames(result_kmeans)= paste('k', c(3:7), sep = '')
+```
+```{r}
+df = cbind(df, result_kmeans)
+df$k3 = factor(df$k3)
+df$k4 = factor(df$k4)
+df$k5 = factor(df$k5)
+df$k6 = factor(df$k6)
+df$k7 = factor(df$k7)
+```
+
+
+```{r}
+data_split <- initial_split(df, .8)
+subtrn <- training(data_split)
+subtst <- testing(data_split)
+```
+
+```{r}
+accuracy <- list()
+tr_contr <- trainControl(method = "cv", number = 5)
+```
+
+```{r,echo=TRUE}
+set.seed(542)
+gbm_mod <- caret::train(bmi_cat ~ . - bmi, data = subtrn,
+                 trControl = tr_contr, 
+                 method = "gbm", verbose = FALSE)
+
+gbm_mat <- confusionMatrix(factor(predict(gbm_mod, subtst), levels = levels(subtst$bmi_cat)),
+                           subtst$bmi_cat)
+
+accuracy$gbm <- gbm_mat$overall['Accuracy']
+# 0.7815679 using only hc
+# 0.7983244 using hc + kmeans
+```
+```{r,echo=TRUE}
+set.seed(542)
+rf_mod <- caret::train(bmi_cat ~ . - bmi, data = subtrn,
+                trControl = tr_contr,
+                method = "ranger",
+                verbose = FALSE)
+
+rf_mat <- confusionMatrix(factor(predict(rf_mod, subtst), levels = levels(subtst$bmi_cat)),
+                          factor(subtst$bmi_cat))
+accuracy$rf <- rf_mat$overall['Accuracy']
+# 0.758827 using only hc
+# 0.7582286 using hc + kmeans
+```
+
+
+```{r}
+gbm_mat$table
+```
+
+```{r}
+set.seed(542)
+gbm_mod2 <- caret::train(bmi_cat ~ . - bmi-hc, data = subtrn,
+                 trControl = tr_contr, 
+                 method = "gbm", verbose = FALSE)
+
+gbm_mat2 <- confusionMatrix(factor(predict(gbm_mod2, subtst), levels = levels(subtst$bmi_cat)),
+                           subtst$bmi_cat)
+gbm_mat2$overall['Accuracy']
+# 0.7851586 without hc
+```
+```{r}
+gbm_mat
+```
+
+```{r}
+set.seed(542)
+rf_mod2 <- caret::train(bmi_cat ~ . -bmi, data = subtrn,
+                 trControl = tr_contr, 
+                 method = "ranger", verbose = FALSE)
+
+rf_mat <- confusionMatrix(factor(predict(rf_mod2, subtst), levels = levels(subtst$bmi_cat)),
+                           subtst$bmi_cat)
+rf_mat$overall['Accuracy']
+# 0.7767804  without hc rf_mat2
+# 0.7863555 with hc rf_mat3
+# with hc+kmeans rf_mat
+```
+```{r}
+rf_mat3
+```
+
+
+```{r}
+accuracy
+```
+
+
+
+
