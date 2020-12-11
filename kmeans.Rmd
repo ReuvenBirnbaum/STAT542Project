@@ -1,0 +1,65 @@
+---
+title: "stat542 project"
+author: "Youngwook Jung"
+date: '2020 11 24 '
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+set.seed(1)
+
+#### k-means
+# Use filteredOTU data
+
+result_3 = kmeans(filteredOTU, centers=3) # k=3
+result_4 = kmeans(filteredOTU, centers=4) # k=4
+result_5 = kmeans(filteredOTU, centers=5) # k=5
+result_6 = kmeans(filteredOTU, centers=6) # k=6
+result_7 = kmeans(filteredOTU, centers=7) # k=7
+result_8 = kmeans(filteredOTU, centers=8) # k=8
+
+result_kmeans = data.frame(result_3$cluster, result_4$cluster, result_5$cluster, result_6$cluster, result_7$cluster) # Summary - lable
+colnames(result_kmeans)= c(3:7)
+
+# basic stats
+# within cluster variation
+result_3$withinss
+result_4$withinss
+result_5$withinss
+result_6$withinss
+result_7$withinss
+
+# between cluster variation
+result_3$betweens # the smallest
+result_4$betweens
+result_5$betweens
+result_6$betweens
+result_7$betweens # the largest
+
+kmeans3 = data.frame(result_3$cluster, otu_sigPCAScores[,1], otu_sigPCAScores[,2], hc_labeled)
+kmeans5 = data.frame(result_5$cluster, otu_sigPCAScores[,1], otu_sigPCAScores[,2], hc_labeled)
+
+plot(kmeans3[,2], kmeans3[,3], col=kmeans3$result_3.cluster, pch = 19, cex = 0.5, xlab="PC1", ylab="PC2")
+legend("topright", legend = c(1, 2, 3), col = c(1, 2, 3), pch = 19)
+
+plot(kmeans5[,2], kmeans5[,3], col=kmeans5$result_5.cluster, pch = 19, cex = 0.5, xlab="PC1", ylab="PC2")
+legend("topright", legend = c(1:5), col = c(1:5), pch = 19)
+
+
+d4 = data.frame(result_4$cluster, hc_labeled$bmi_cat)
+colnames(d4) <- c("K-means", "bmi category")
+table(d4)
+d5 = data.frame(result_5$cluster, hc_labeled$alcohol_frequency)
+colnames(d5) <- c("K-means", "alcohol frequency")
+table(d5)
+d8 = data.frame(result_8$cluster, hc_labeled$age_cat)
+colnames(d8) <- c("K-means", "age category")
+table(d8)
+```
