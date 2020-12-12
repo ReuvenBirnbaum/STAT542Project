@@ -22,19 +22,28 @@ Run to load entire dataset
 ```{r, eval=FALSE}
 setwd("C:/Users/reuven/Documents/Classes/STAT542Project")
 cleanData = readRDS("C:/Users/reuven/Documents/Classes/STAT542Project/data/cleanedData.rds")
-
+nonOtuInfo = cleanData[,1:9]
+nonOtuInfo$bmi = as.numeric(nonOtuInfo$bmi)
+nonOtuInfo$weight_kg = as.numeric(nonOtuInfo$weight_kg)
 ```
 
 
 Create and save numeric OTU Info of cleanedData 
 ```{r}
-otuInfo = cleanData[2:nrow(cleanData),c(10:ncol(cleanData))]
+otuInfo = cleanData[1:nrow(cleanData),c(10:ncol(cleanData))]
 otuInfo[] = lapply(otuInfo,as.numeric)
+nonOtuInfo = cleanData[,1:9]
+nonOtuInfo$bmi = as.numeric(nonOtuInfo$bmi)
+nonOtuInfo$weight_kg = as.numeric(nonOtuInfo$weight_kg)
 saveRDS(otuInfo,"data/otuInfo.rds")
+saveRDS(nonOtuInfo,"data/nonOtuInfo.rds")
+
 ```
 
 
 ```{r}
+
+
 #library(princomp)
 if (!exists("otuInfo")){
   otuInfo = readRDS('data/otuInfo.rds')
@@ -52,19 +61,72 @@ nonZeroSorted[8355:8365] #if we use above cutoff, we favor certain attributes wi
 plot(nonZeroSorted[1:n]/n,lty=1,type="l",xlab="Sorted Attributes",ylab="Non-Zero element ratio")
 
 
-selectAttr= nonZero>8 #cutoff
+#selectAttr= nonZero>8 #cutoff
 #selectAttr= nonZero>.01*n #Accepting the 1876 most populated attributes
-selectOTUInfo = otuInfo[,selectAttr]
-if (!exists("otu.pca")){otu.pca = princomp(selectOTUInfo)}
-pcaLimit =sum((cumsum(otu.pca$sdev^2)/sum(otu.pca$sdev^2))<=.85)
+#selectOTUInfo = otuInfo[,selectAttr]
+#if (!exists("otu.pca")){otu.pca = princomp(selectOTUInfo)}
 
-otu.sigPCAScores = otu.pca$scores[,1:pcaLimit]
+#pcaLimit =sum((cumsum(otu.pca$sdev^2)/sum(otu.pca$sdev^2))<=.85)
+
+#otu.sigPCAScores = otu.pca$scores[,1:pcaLimit]
+
+if (!exists("otu_sigPCAScores")){
+  otu.sigPCAScores = readRDS('data/otu_sigPCAScores.rds')
+}
 
 pairs(otu.sigPCAScores[,1:6])
-saveRDS(otu.sigPCAScores,"data/otu_sigPCAScores.rds")
-
-
+#saveRDS(otu.sigPCAScores,"data/otu_sigPCAScores.rds")
 ```
+```{r}
+
+score1 = scores[,1]
+score2 = scores[,2]
+score3 = scores[,3]
+score4 = scores[,4]
+df = data.frame(PC1 = score1,PC2 = score2, PC3 = score3, PC4 = score4)
+df12 = data.frame(PCA1 = score1,PCA2 = score2)
+df13 = data.frame(x = score1,y = score3)
+df23 = data.frame(x = score2,y = score3)
+df14 = data.frame(x = score1,y = score4)
+df24 = data.frame(x = score2,y = score4)
+df32 = data.frame(x = score3,y = score4)
+
+
+g12 <- ggplot(df, aes(x=PC1, y=PC2) ) +
+  geom_bin2d(bins = 60) +
+  scale_fill_continuous(type = "viridis") +
+  theme_bw()
+
+g13 <- ggplot(df, aes(x=PC1, y=PC3) ) +
+  geom_bin2d(bins = 60) +
+  scale_fill_continuous(type = "viridis") +
+  theme_bw()
+
+g23 <- ggplot(df, aes(x=PC2, y=PC3) ) +
+  scale_fill_continuous(type = "viridis") +
+  geom_bin2d(bins = 60) +
+  theme_bw()
+
+g14 <- ggplot(df, aes(x=PC1, y=PC4) ) +
+  scale_fill_continuous(type = "viridis") +
+  geom_bin2d(bins = 60) +
+  theme_bw()
+
+g24 <- ggplot(df, aes(x=PC2, y=PC4) ) +
+  scale_fill_continuous(type = "viridis") +
+  geom_bin2d(bins = 60) +
+  theme_bw()
+
+g34 <- ggplot(df, aes(x=PC2, y=PC4) ) +
+  scale_fill_continuous(type = "viridis") +
+  geom_bin2d(bins = 60) +
+  theme_bw()
+
+ggarrange(g12,g13,g23,g14,ncol = 2,nrow=2)
+
+ggarrange(g12,g13,g23,g14,g24,g34, ncol = 3,nrow=2)
+```
+
 
 ```{r}
 library(kohonen)

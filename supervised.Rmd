@@ -1,0 +1,187 @@
+---
+title: "Untitled"
+author: "reuven"
+date: "12/4/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(glmnet)
+library(kohonen)
+library(plyr)
+library(readr)
+library(dplyr)
+library(caret)
+library(ggplot2)
+library(repr)
+library(gglasso)
+
+
+setwd("C:/Users/reuven/Documents/Classes/STAT542Project")
+otu.pca = readRDS('data/pca.rds')
+hclustResults = readRDS('data/hc_labeled.rds')
+kmeansResults = readRDS('data/result_kmeans.rds')
+nonOtuInfo = readRDS('data/nonOtuInfo.rds')
+SOMlabels = readRDS('data/SOMLabels.rds')
+scores=otu.pca$ind$coord
+
+```
+
+
+
+
+```{r}
+plot(nonOtuInfo$weight_kg,nonOtuInfo$bmi,xlab = "Weight (kg)", ylab= "BMI")
+strangeObs = which(nonOtuInfo$bmi>100 & nonOtuInfo$weight_kg<200)
+strangeObs  = c(strangeObs,which(nonOtuInfo$weight_kg>600))
+nonOtuInfo[strangeObs,]
+
+numStrangeObs = c()
+for (obs in strangeObs){
+  row = nonOtuInfo[obs,]
+  tot = sum(nonOtuInfo$age_cat==row$age_cat & nonOtuInfo$race==row$race & 
+              nonOtuInfo$sex==row$sex & nonOtuInfo$bmi_cat==row$bmi_cat & 
+              nonOtuInfo$alcohol_frequency==row$alcohol_frequency)
+  print(tot)
+}
+data = cbind(nonOtuInfo[,c(3,4,6,7,8)],scores)
+data = data[-strangeObs,]
+```
+
+```{r}
+n = nrow(data)
+cvNum = 6
+set.seed(123)
+cvSamples = matrix(sample(seq(1,n)),ncol = cvNum)
+
+X <- model.matrix( ~ ., dplyr::select(data, -bmi))[, -1]
+y = data$bmi
+groups = c(rep(1,7),2,rep(3,4),rep(4,2),5:74)
+lambdas <- seq(10^-4, 10^-2, length.out = 30)
+RSS = rep(0,length(lambdas))
+
+for (index in 1:cvNum){
+  currFit = gglasso(x = X[-cvSamples[,index],], y = y[-cvSamples[,index]],group = groups,lambda = lambdas)
+  currY = y[cvSamples[,index]]
+  currX = X[cvSamples[,index],]
+  for (lambdaIndex in 1:length(lambdas)){
+    yHat = currX%*%currFit$beta[,lambdaIndex]+currFit$b0[lambdaIndex]
+    RSS[lambdaIndex] = RSS[lambdaIndex]+sum((yHat-currY)^2)
+  }
+}
+RMS = sqrt(RSS/n)
+plot(currFit$lambda,RMS, xlab = "lambda", type = "l",lwd = 2,pch =16, main = "Zoomed In")
+points(currFit$lambda,RMS)
+bestLambda = currFit$lambda[which.min(RMS)]
+
+```
+
+
+```{r}
+
+
+X <- model.matrix( ~ ., dplyr::select(data, -bmi))[, -1]
+y = data$bmi
+groups = c(rep(1,7),2,rep(3,4),rep(4,2),5:74)
+lambdas <- c(seq(0, .5, length.out = 15),seq(.55, 1, length.out = 9))
+RSS = rep(0,length(lambdas))
+
+for (index in 1:cvNum){
+  currFit = gglasso(x = X[-cvSamples[,index],], y = y[-cvSamples[,index]],group = groups,lambda = lambdas)
+  currY = y[cvSamples[,index]]
+  currX = X[cvSamples[,index],]
+  for (lambdaIndex in 1:length(lambdas)){
+    yHat = currX%*%currFit$beta[,lambdaIndex]+currFit$b0[lambdaIndex]
+    RSS[lambdaIndex] = RSS[lambdaIndex]+sum((yHat-currY)^2)
+  }
+}
+RMS = sqrt(RSS/n)
+plot(currFit$lambda,RMS, xlab = "lambda", type = "l",lwd = 2,pch =16, main = "Zoomed Out")
+points(currFit$lambda,RMS)
+```
+
+
+
+
+```{r}
+set.seed(456)
+testSample = sample(1:n,size=n/6)
+yTest = y[testSample]
+XTest = X[testSample,]
+yTrain = y[-testSample]
+XTrain = X[-testSample,]
+bestFit = gglasso(x =XTrain, y = yTrain,group = groups,lambda = bestLambda)
+
+yPredTest = XTest%*%bestFit$beta +bestFit$b0
+yPredTrain = XTrain%*%bestFit$beta +bestFit$b0
+bestRMSTest  = sqrt(mean(((yPredTest-yTest)^2))) #2.90
+bestRMSTrain  = sqrt(mean(((yPredTrain-yTrain)^2))) #2.78
+
+
+```
+
+
+```{r}
+
+plot(c(yPredTrain,yPredTest),c(yTrain,yTest),xlab = "Predicted BMI", ylab="Actual BMI",pch=16,col="green")
+abline(a=0,b=1,col="black",lwd =2, lty =2)
+
+```
+Model: 
+age_cat30s                     0.08171142
+age_cat40s                     0.37620798
+age_cat50s                     0.46328847
+age_cat60s                     0.87333455
+age_cat70+                     0.92737680
+age_catchild                   7.66390812
+age_catteen                    0.83017885
+weight_kg                      0.30743426
+raceAsian or Pacific Islander  0.32707287
+raceCaucasian                 -0.74509762
+raceHispanic                  -0.04930402
+raceOther                      0.04059691 
+sexmale                       -3.35944889
+sexother                      -0.52874680
+Dim.2                          0.14723986
+Dim.6                          0.65831331
+
+```{r}
+
+dataMS =cbind(nonOtuInfo[,c(3,4,6,7,8)],kmeansResults,SOMlabels,hclustResults[,8])
+dataMS = dataMS[-strangeObs,]
+colnames(dataMS) = c("age_cat", "bmi", "weight_kg", "race", "sex", "k3", "k4", "k5", 
+                     "k6", "k7", "s2", "s3", "s4", "s5", "s6", "s7", "hc")
+for (index in 6:16){
+  dataMS[,index] = factor(dataMS[,index])
+}
+
+set.seed(123)
+testInd =  sample(seq(1:n),size=n/cvNum)
+testSet = dataMS[testInd,]
+trainSet  = dataMS[-testInd,]
+
+lmfit=lm(bmi~., data=trainSet)
+aicResult =step(lmfit, direction="both",k=2, trace=0)
+bicResult =step(lmfit, direction="both",k=log(n), trace=0)
+
+
+summary(aicResult)
+summary(bicResult)
+
+
+bicTestBMI =predict(bicResult,testSet)
+aicTestBMI =predict(aicResult,testSet)
+
+sqrt(mean((aicTestBMI-testSet$bmi)^2)) #aic test rmse: 2.893051
+plot(a, testSet$bmi)
+sqrt(mean((bicTestBMI-testSet$bmi)^2)) #bic test rmse:2.890575
+
+
+```
+

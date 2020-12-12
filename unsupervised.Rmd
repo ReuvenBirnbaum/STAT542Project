@@ -1,0 +1,94 @@
+---
+title: "Untitled"
+author: "reuven"
+date: "11/30/2020"
+output: pdf_document
+---
+
+
+
+```{r}
+library(glmnet)
+library(kohonen)
+
+setwd("C:/Users/reuven/Documents/Classes/STAT542Project")
+otu.pca = readRDS('data/pca.rds')
+hclustResults = readRDS('data/hc_labeled.rds')
+kmeansResults = readRDS('data/result_kmeans.rds')
+nonOtuInfo = readRDS('data/nonOtuInfo.rds')
+
+scores=otu.pca$ind$coord
+
+```
+
+```{r}
+
+
+otu.somLarge =som(scores,grid = somgrid(21,21,"hexagonal"))
+plot(otu.somLarge,type="dist.neighbours")
+plot(otu.somLarge,type="counts")
+```
+
+
+```{r}
+kMax = 7
+kMin = 2
+K = kMin:kMax
+SOMlabels = data.frame(matrix(,nrow=8359,ncol=(kMax-kMin+1)))
+names(SOMlabels) = apply(as.matrix(K),1,toString)
+somTotDist = c()
+
+
+for (i in 1:length(K)){
+  k = K[i]
+  currOTU.som = som(scores,grid = somgrid(k,1,"rectangular"))
+  SOMlabels[toString(k)] <- currOTU.som$unit.classif
+  somTotDist[i] = sum(currOTU.som$distances)
+}
+
+
+occurMatrix = matrix(,nrow=kMax,ncol=(kMax-kMin+1))
+for (kInd in 1:(kMax-kMin+1)){
+  for (l in 1:kMax){
+    occurMatrix[l,kInd] = (sum(SOMlabels[toString(K[kInd])]==l))
+  }
+}
+occurancesK = data.frame(occurMatrix)
+names(occurancesK) = names(labels)
+rownames(occurancesK) = apply(as.matrix(1:kMax),1,toString)
+occurancesK
+```
+
+
+
+```{r}
+pairs(scores[,1:6],col=c("red","blue","green")[as.matrix(SOMlabels["3"])])
+pairs(scores[,1:6],col=c("red","blue","green","yellow","black")[as.matrix(SOMlabels["5"])])
+pairs(scores[,1:6],col=c("red","blue","green","yellow","black","purple","cyan")[as.matrix(SOMlabels["7"])])
+```
+```{r}
+
+hc = hclustResults$hc
+km = kmeansResults[,1]
+
+somVshc = matrix(0,3,3)
+somVsKM = matrix(0,3,3)
+hcVsKM = matrix(0,3,3)
+for (index in 1:8359){
+  currSom = SOMlabels[index,2]
+  currHC = hc[index]
+  currKm = km[index]
+  somVshc[currSom,currHC] = somVshc[currSom,currHC] +1
+  somVsKM[currSom,currKm] = somVsKM[currSom,currKm] +1
+  hcVsKM[currHC,currKm] = hcVsKM[currHC,currKm] +1
+}
+somVshc
+somVsKM
+t(hcVsKM)
+
+```
+
+
+
+
+

@@ -6,11 +6,11 @@ output: html_notebook
 
 
 ```{r}
-#cleanedData = readRDS('data/cleanedData.rds')
+nonOtuInfo = readRDS('data/nonOtuInfo.rds')
 
-wKg = as.numeric(cleanedData$weight_kg)
-age = cleanedData$age_cat
-bmi = as.numeric(cleanedData$bmi)
+wKg = as.numeric(nonOtuInfo$weight_kg)
+age = nonOtuInfo$age_cat
+bmi = as.numeric(nonOtuInfo$bmi)
 
 boxplot(wKg~age)
 boxplot(wKg~age,ylim=c(0,50))
@@ -25,14 +25,14 @@ sqrt(wKg[largeWKGSamllBMI]/bmi[largeWKGSamllBMI]) # 4 meters tall!!
 smallWKGlargeBMI = which(bmi>100 & wKg <200)
 sqrt(mean(wKg[smallWKGlargeBMI])/mean(bmi[smallWKGlargeBMI])) #2 feet tall
 
-boxplot(bmi ~ cleanedData$bmi_cat)
-boxplot(bmi ~ cleanedData$bmi_cat,ylim = c(0,12), ylab = "bmi (life threatening range)")
+boxplot(bmi ~ nonOtuInfo$bmi_cat)
+boxplot(bmi ~ nonOtuInfo$bmi_cat,ylim = c(0,12), ylab = "bmi (life threatening range)")
 
 ```
 
 
 ```{r}
-#otuInfo = readRDS('data/otuInfo.rds')
+otuInfo = readRDS('data/otuInfo.rds')
 uniqueNonZeroRatio = c()
 for (ind in 1:ncol(otuInfo)){
   currNonZeroObs = otuInfo[,ind]!=0
@@ -42,4 +42,49 @@ plot(sort(uniqueNonZeroRatio),type="l",xlab = "Sorted OTU Attributes", ylab = "R
 
 ```
 
+```{r}
+
+overweightInd = nonOtuInfo$bmi_cat=="Overweight"
+NormalInd = nonOtuInfo$bmi_cat=="Normal"
+ObesetInd = nonOtuInfo$bmi_cat=="Obese"
+UnderweightInd = nonOtuInfo$bmi_cat=="Underweight"
+
+plot(nonOtuInfo$weight_kg[overweightInd], nonOtuInfo$bmi[overweightInd],
+     col = "green", pch =16, xlab = "Weight (kg)", ylab = "BMI",xlim = c(0,650), ylim = c(0,200))
+points(nonOtuInfo$weight_kg[ObesetInd], nonOtuInfo$bmi[ObesetInd],col = "blue", pch =16)
+points(nonOtuInfo$weight_kg[NormalInd], nonOtuInfo$bmi[NormalInd],col = "red", pch =16)
+points(nonOtuInfo$weight_kg[UnderweightInd], nonOtuInfo$bmi[UnderweightInd],col = "black", pch =16)
+
+legend("topright", c("Underweight","Normal","Overweight","Obese"), col = c("black","red","green","blue"),pch = rep(16,4))
+
+
+```
+
+```{r}
+hc = hclustResults$hc
+km = km = kmeansResults$`3`
+som =SOMlabels$`3`
+
+
+withinClusterSS <- function(scores,labels){
+  W = 0
+  for (k in 1:3){
+    currkInd = labels==k
+    currN = sum(currkInd)
+    currScores = scores[currkInd,]
+    currMean = colMeans(currScores)
+    currMeanRep =  t(matrix(rep(currMean,currN),70,currN))
+    W = W + sum(sqrt(rowSums((currMeanRep-currScores)^2)))
+  }
+  return(W)
+}
+
+withinClusterSS(scores,hc)
+withinClusterSS(scores,km)
+withinClusterSS(scores,som)
+
+
+
+
+```
 
