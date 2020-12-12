@@ -1,0 +1,46 @@
+---
+title: "Logistic reg"
+author: "Youngwook Jung"
+date: '2020 12 9 '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+##### Supervised learning; Alcohol consumption frequency analysis
+### Logistic regression
+
+df_supervised = data.frame(mydata_c[,8], mydata_c[,2], mydata_c[,5], mydata_c[,6], mydata_c[,7], otu_sigPCAScores[,1:70])
+
+colnames(df_supervised)[1] <- "alcohol_frequency"
+colnames(df_supervised)[2] <- "age_cat"
+colnames(df_supervised)[3] <- "weight_kg"
+colnames(df_supervised)[4] <- "race"
+colnames(df_supervised)[5] <- "sex"
+
+df_supervised$alcohol_frequency <- as.factor(df_supervised$alcohol_frequency)
+df_supervised$age_cat <- as.factor(df_supervised$age_cat)
+df_supervised$weight_kg <- as.numeric(df_supervised$weight_kg)
+df_supervised$race <- as.factor(df_supervised$race)
+df_supervised$sex <- as.factor(df_supervised$sex)
+
+set.seed(1)
+trainid = sample(1:nrow(df_supervised), nrow(df_supervised)/2)
+train = df_supervised[trainid, ]
+test = df_supervised[-trainid, ]
+
+library(nnet)
+levels(train$alcohol_frequency)
+train$alcohol_frequency <- relevel(train$alcohol_frequency, "Never")
+mlogit = multinom(alcohol_frequency ~., data=test)
+#summary(mlogit)
+
+fit <- fitted(mlogit)
+
+pred_alcohol = data.frame(test$alcohol_frequency, predict(mlogit, data=test))
+mean(pred_alcohol$predict.mlogit..data...test. != pred_alcohol$test.alcohol_frequency)
+
+```
